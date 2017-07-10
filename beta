@@ -1,0 +1,78 @@
+#how can we understand mircobiome
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
+import seaborn as sns
+import scipy
+from scipy import stats
+%matplotlib inline
+#index is sample ID 
+# B is healthy, I is unhealthy
+# Beta diveristy: principle component analysis & multivariable statistic analysis - adonis/permanova test & box plot 
+# marker: bar chart, heat map rank sum test & box plot
+distance_df = pd.read_csv('/Users/sun/Desktop/summer/taxa.dist', sep='\t',index_col=0)
+#family_genus
+#alpha diversity
+#rank sum test & box plot
+abundance_df = pd.read_csv('/Users/sun/Desktop/summer/taxa.genus.Abd', sep='\t')
+abundance_df.index = abundance_df['SampleID'].values
+del abundance_df['SampleID']
+#alpha diveristy original dataframe
+alpha_df= pd.DataFrame(np.random.randn(20,1),columns=['alpha'], 
+                       index=abundance_df.index.values)
+#p value for alpha diversity
+healthy=alpha_df[:alpha_df.shape[0]/2].values
+sick=alpha_df[alpha_df.shape[0]/2 :].values
+z_stat, p_val=scipy.stats.ranksums(healthy, sick)
+print 'Alpha Diversity p value:',p_val
+#reshape alpha diversity dataframe for plotting
+healthy_df=pd.DataFrame(data=healthy, index=None, columns=['healthy'])
+sick_df=pd.DataFrame(data=sick, index=None, columns=['sick'])
+alpha_df_reshape=pd.concat([healthy_df, sick_df], axis=1)
+#plot alpha diverisity
+alpha_plot=sns.boxplot(alpha_df_reshape,vert=False)
+alpha_plot.set(xlabel='status', ylabel='Shannon index')
+plt.show()
+#heatmap of distance 
+column_labels = distance_df.columns.values
+row_labels = distance_df.index.values
+data = distance_df.values
+fig, ax = plt.subplots()
+heatmap = ax.pcolor(data, cmap=plt.cm.Blues)
+
+# put the major ticks at the middle of each cell
+ax.set_xticks(np.arange(data.shape[0])+0.5, minor=False)
+ax.set_yticks(np.arange(data.shape[1])+0.5, minor=False)
+
+# want a more natural, table-like display
+ax.invert_yaxis()
+ax.xaxis.tick_top()
+plt.xticks(rotation=90)
+ax.set_xticklabels(row_labels, minor=False)
+ax.set_yticklabels(column_labels, minor=False)
+plt.show()
+#beta diverisity 
+#within group - upper left corner
+#between group - upper right corner
+# p value??
+between_df=distance_df.iloc[:10,10:]
+between=[]
+for i in range (distance_df.shape[0]/2):
+    for j in range (distance_df.shape[1]/2,distance_df.shape[1]):
+        between.append(distance_df.ix[i,j])
+within=[]
+for i in range (distance_df.shape[0]/2-1):
+    for j in range (i+1,distance_df.shape[1]/2):
+        within.append(distance_df.ix[i,j])
+for k in range (distance_df.shape[0]/2, distance_df.shape[0]-1):
+    for l in range (k+1,distance_df.shape[1]):
+        within.append(distance_df.ix[k,l])
+between_df=pd.DataFrame(data=between, index=None, columns=['between'])
+within_df=pd.DataFrame(data=within, index=None, columns=['within'])
+beta_df_reshape=pd.concat([within_df, between_df], axis=1)
+#plot beta diverisity
+beta_plot=sns.boxplot(beta_df_reshape,vert=False)
+beta_plot.set(xlabel='DisType', ylabel='Mata Storms distance')
+plt.show()
+z_stat_beta, p_val_beta=scipy.stats.ranksums(within, between)
+p_val_beta
